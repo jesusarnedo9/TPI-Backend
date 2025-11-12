@@ -1,0 +1,33 @@
+{
+  "realm": "backend-tps",
+  "enabled": true,
+  "clients": [
+    {
+      "clientId": "solicitudes",
+      "enabled": true,
+      "publicClient": false,
+      "secret": "solicitudes-secret",
+      "redirectUris": ["*"],
+      "serviceAccountsEnabled": true,
+      "directAccessGrantsEnabled": true
+    }
+  ],
+  "roles": {
+    "realm": ["USER", "ADMIN"]
+  },
+  "users": [
+    {
+      "username": "app-admin",
+      "enabled": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "admin",
+          "temporary": false
+        }
+      ],
+      "realmRoles": ["ADMIN"]
+    }
+  ]
+}
+

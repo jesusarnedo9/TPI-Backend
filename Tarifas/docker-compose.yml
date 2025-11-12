@@ -1,0 +1,42 @@
+version: "3.8"
+
+services:
+  db:
+    image: mcr.microsoft.com/mssql/server:2019-latest
+    environment:
+      SA_PASSWORD: "YourStrong!Passw0rd"
+      ACCEPT_EULA: "Y"
+    ports:
+      - "1433:1433"
+    volumes:
+      - mssql-data:/var/opt/mssql
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:21.1.1
+    environment:
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+    volumes:
+      - ./keycloak/realm-backend-tps.json:/opt/keycloak/data/import/realm-backend-tps.json:ro
+    command: ["start-dev", "--http-enabled=true", "--import-realm"]
+    ports:
+      - "8080:8080"
+
+  tarifas:
+    build: .
+    image: tarifas:latest
+    ports:
+      - "8005:8005"
+    environment:
+      SPRING_DATASOURCE_URL: "jdbc:sqlserver://db:1433;databaseName=tpi_logistica_db;encrypt=false;trustServerCertificate=true;"
+      SPRING_DATASOURCE_USERNAME: "sa"
+      SPRING_DATASOURCE_PASSWORD: "YourStrong!Passw0rd"
+      OIDC_ISSUER_URI: "http://keycloak:8080/realms/backend-tps"
+      SERVER_PORT: "8005"
+    depends_on:
+      - db
+      - keycloak
+
+volumes:
+  mssql-data:
+

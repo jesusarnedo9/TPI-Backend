@@ -1,0 +1,54 @@
+version: '3.8'
+
+services:
+  db:
+    image: mcr.microsoft.com/mssql/server:2019-latest
+    container_name: solicitudes_db
+    environment:
+      SA_PASSWORD: "YourStrong!Passw0rd"
+      ACCEPT_EULA: "Y"
+    ports:
+      - "1433:1433"
+    volumes:
+      - mssql-data:/var/opt/mssql
+    networks:
+      - microservices_net
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:20.0.3
+    container_name: solicitudes_keycloak
+    environment:
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+    command: ["start-dev"]
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./keycloak/realm.json:/opt/keycloak/data/import/realm.json:ro
+    networks:
+      - microservices_net
+
+  solicitudes:
+    build: .
+    container_name: solicitudes_app
+    depends_on:
+      - db
+      - keycloak
+    environment:
+      SPRING_DATASOURCE_URL: "jdbc:sqlserver://db:1433;databaseName=tpi_logistica_db;encrypt=false;trustServerCertificate=true;"
+      DB_USER: "sa"
+      DB_PASSWORD: "YourStrong!Passw0rd"
+      KEYCLOAK_ISSUER_URI: "http://keycloak:8080/realms/backend-tps"
+      SERVER_PORT: "8002"
+    ports:
+      - "8002:8002"
+    networks:
+      - microservices_net
+
+volumes:
+  mssql-data:
+    driver: local
+
+networks:
+  microservices_net:
+    external: true

@@ -1,0 +1,31 @@
+{
+  "realm": "backend-tps",
+  "enabled": true,
+  "roles": {
+    "realm": ["user", "admin"]
+  },
+  "clients": [
+    {
+      "clientId": "backend-tps",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": true,
+      "directAccessGrantsEnabled": true,
+      "redirectUris": ["*"],
+      "attributes": {
+        "access.token.lifespan": "300"
+      }
+    }
+  ],
+  "users": [
+    {
+      "username": "user1",
+      "enabled": true,
+      "credentials": [
+        { "type": "password", "value": "password", "temporary": false }
+      ],
+      "realmRoles": ["user"]
+    }
+  ]
+}
+

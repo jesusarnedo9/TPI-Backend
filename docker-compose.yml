@@ -1,0 +1,184 @@
+services:
+
+  # --- 1. SERVICIO DE BASE DE DATOS (SQL Server) ---
+  db-sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: sql_server_db
+    ports:
+      - "1433:1433"
+    environment:
+      - ACCEPT_EULA=Y
+      # IMPORTANTE: Esta es la contraseña para tu BD
+      - MSSQL_SA_PASSWORD=yourStrong(!)Password
+    volumes:
+      - mssql_data:/var/opt/mssql
+    networks:
+      - tpi_net
+
+  # --- 2. SERVICIO DE AUTENTICACIÓN (Keycloak) ---
+  keycloak:
+    image: quay.io/keycloak/keycloak:latest
+    container_name: keycloak_server
+    ports:
+      - "9090:8080"
+    command: start-dev
+    environment:
+      # Conecta Keycloak a la base de datos (URL JDBC completa con propiedades SSL)
+      - KC_DB=mssql
+      - KC_DB_URL=jdbc:sqlserver://sql_server_db:1433;databaseName=keycloak_db;encrypt=true;trustServerCertificate=true
+      - KC_DB_USERNAME=sa
+      - KC_DB_PASSWORD=yourStrong(!)Password
+
+      # Admin de Keycloak
+      - KEYCLOAK_ADMIN=admin
+      - KEYCLOAK_ADMIN_PASSWORD=admin
+    volumes:
+      - keycloak_data:/opt/keycloak/data
+    depends_on:
+      - db-sqlserver
+    networks:
+      - tpi_net
+
+  # --- 3. SERVICIO DE RUTAS (OSRM) ---
+  osrm:
+    image: osrm/osrm-backend
+    container_name: osrm_router
+    ports:
+      - "5000:5000"
+    volumes:
+      # Asegúrate que la carpeta 'osrm-data' esté al lado de este .yml
+      - ./osrm-data:/data
+    command: osrm-routed /data/argentina-latest.osrm
+    networks:
+      - tpi_net
+
+  # --- 4. API GATEWAY ---
+  apigateway:
+    # CORREGIDO: Apunta a tu carpeta "ApiGateway"
+    build: ./ApiGateway 
+    container_name: apigateway
+    ports:
+      - "8080:8080" # Puerto de entrada principal
+    environment:
+      - SERVER_PORT=8080
+      - APIGW_USUARIOS_URL=http://microservicio_usuarios:8001/
+      - APIGW_SOLICITUDES_URL=http://microservicio_solicitudes:8002/
+      - APIGW_INVENTARIO_URL=http://microservicio_inventario:8003/
+      - APIGW_VIAJES_URL=http://microservicio_viajes:8004/
+      - APIGW_TARIFAS_URL=http://microservicio_tarifas:8005/
+      - OAUTH_ISSUER_URI=http://keycloak_server:8080/realms/backend-tps
+    depends_on:
+      - keycloak
+      - microservicio_usuarios 
+      - microservicio_solicitudes
+      - microservicio_inventario
+      - microservicio_viajes
+      - microservicio_tarifas
+    networks:
+      - tpi_net
+
+  # --- 5. MICROSERVICIOS ---
+
+  microservicio_usuarios:
+    # CORREGIDO: Apunta a tu carpeta "Usuarios"
+    build: ./Usuarios 
+    container_name: microservicio_usuarios
+    ports:
+      - "8001:8001"
+    environment:
+      - SERVER_PORT=8001
+      - SPRING_DATASOURCE_URL=jdbc:sqlserver://sql_server_db:1433;databaseName=tpi_db;encrypt=true;trustServerCertificate=true
+      - SPRING_DATASOURCE_USERNAME=sa
+      - SPRING_DATASOURCE_PASSWORD=yourStrong(!)Password
+      - OAUTH_ISSUER_URI=http://keycloak_server:8080/realms/backend-tps
+    depends_on:
+      - db-sqlserver
+      - keycloak
+    networks:
+      - tpi_net
+
+  microservicio_solicitudes:
+    # CORREGIDO: Apunta a tu carpeta "Solicitudes"
+    build: ./Solicitudes 
+    container_name: microservicio_solicitudes
+    ports:
+      - "8002:8002"
+    environment:
+      - SERVER_PORT=8002
+      - SPRING_DATASOURCE_URL=jdbc:sqlserver://sql_server_db:1433;databaseName=tpi_db;encrypt=true;trustServerCertificate=true
+      - SPRING_DATASOURCE_USERNAME=sa
+      - SPRING_DATASOURCE_PASSWORD=yourStrong(!)Password
+      - OAUTH_ISSUER_URI=http://keycloak_server:8080/realms/backend-tps
+    depends_on:
+      - db-sqlserver
+      - keycloak
+    networks:
+      - tpi_net
+
+  microservicio_inventario:
+    # CORREGIDO: Apunta a tu carpeta "inventario"
+    build: ./inventario 
+    container_name: microservicio_inventario
+    ports:
+      - "8003:8003"
+    environment:
+      - SERVER_PORT=8003
+      - SPRING_DATASOURCE_URL=jdbc:sqlserver://sql_server_db:1433;databaseName=tpi_db;encrypt=true;trustServerCertificate=true
+      - SPRING_DATASOURCE_USERNAME=sa
+      - SPRING_DATASOURCE_PASSWORD=yourStrong(!)Password
+      - OAUTH_ISSUER_URI=http://keycloak_server:8080/realms/backend-tps
+    depends_on:
+      - db-sqlserver
+      - keycloak
+    networks:
+      - tpi_net
+
+  microservicio_viajes:
+    # CORREGIDO: Apunta a tu carpeta "Viajes"
+    build: ./Viajes 
+    container_name: microservicio_viajes
+    ports:
+      - "8004:8004"
+    environment:
+      - SERVER_PORT=8004
+      - SPRING_DATASOURCE_URL=jdbc:sqlserver://sql_server_db:1433;databaseName=tpi_db;encrypt=true;trustServerCertificate=true
+      - SPRING_DATASOURCE_USERNAME=sa
+      - SPRING_DATASOURCE_PASSWORD=yourStrong(!)Password
+      - OAUTH_ISSUER_URI=http://keycloak_server:8080/realms/backend-tps
+      - OSRM_SERVICE_URL=http://osrm_router:5000
+    depends_on:
+      - db-sqlserver
+      - keycloak
+      - osrm 
+    networks:
+      - tpi_net
+
+  microservicio_tarifas:
+    # CORREGIDO: Apunta a tu carpeta "Tarifas"
+    build: ./Tarifas 
+    container_name: microservicio_tarifas
+    ports:
+      - "8005:8005"
+    environment:
+      - SERVER_PORT=8005
+      - SPRING_DATASOURCE_URL=jdbc:sqlserver://sql_server_db:1433;databaseName=tpi_db;encrypt=true;trustServerCertificate=true
+      - SPRING_DATASOURCE_USERNAME=sa
+      - SPRING_DATASOURCE_PASSWORD=yourStrong(!)Password
+      - OAUTH_ISSUER_URI=http://keycloak_server:8080/realms/backend-tps
+    depends_on:
+      - db-sqlserver
+      - keycloak
+    networks:
+      - tpi_net
+
+# Definición de los volúmenes para persistir los datos
+volumes:
+  mssql_data:
+  keycloak_data:
+
+# Definición de la red compartida
+networks:
+  tpi_net:
+    driver: bridge
+
+#eof

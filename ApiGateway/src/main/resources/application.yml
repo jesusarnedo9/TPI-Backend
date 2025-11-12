@@ -1,0 +1,65 @@
+# Nombre de la aplicacin y puerto
+server:
+  port: ${SERVER_PORT:8080}
+spring:
+  application:
+    name: ApiGateWay
+
+  # URL de Keycloak para validacin de tokens
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${OAUTH_ISSUER_URI:http://keycloak:8080/realms/backend-tps}
+
+  # --- CONFIGURACIN DE RUTAS (LA PARTE QUE FALTABA) ---
+  cloud:
+    gateway:
+      routes:
+        # 1. Ruta al MS Usuarios
+        - id: usuarios-route
+          uri: ${apigateway.url-microservice-usuarios:http://microservicio_usuarios:8001}
+          predicates:
+            - Path=/api/usuarios/**
+          filters:
+            - RewritePath=/api/usuarios/(?<segment>.*), /${segment}
+
+        # 2. Ruta al MS Solicitudes
+        - id: solicitudes-route
+          uri: ${apigateway.url-microservice-solicitudes:http://microservicio_solicitudes:8002}
+          predicates:
+            - Path=/api/solicitudes/**
+          filters:
+            - RewritePath=/api/solicitudes/(?<segment>.*), /${segment}
+
+        # 3. Ruta al MS Inventario
+        - id: inventario-route
+          uri: ${apigateway.url-microservice-inventario:http://microservicio_inventario:8003}
+          predicates:
+            - Path=/api/inventario/**
+          filters:
+            - RewritePath=/api/inventario/(?<segment>.*), /${segment}
+
+        # 4. Ruta al MS Viajes
+        - id: viajes-route
+          uri: ${apigateway.url-microservice-viajes:http://microservicio_viajes:8004}
+          predicates:
+            - Path=/api/viajes/**
+          filters:
+            - RewritePath=/api/viajes/(?<segment>.*), /${segment}
+
+        # 5. Ruta al MS Tarifas
+        - id: tarifas-route
+          uri: ${apigateway.url-microservice-tarifas:http://microservicio_tarifas:8005}
+          predicates:
+            - Path=/api/tarifas/**
+          filters:
+            - RewritePath=/api/tarifas/(?<segment>.*), /${segment}
+
+# Configuraciones adicionales spring:
+  main:
+    allow-bean-definition-overriding: true
+logging:
+  level:
+    root: INFO
+debug: ${DEBUG:false}

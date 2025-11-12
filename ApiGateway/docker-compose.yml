@@ -1,0 +1,58 @@
+version: '3.8'
+
+services:
+  keycloak:
+    image: quay.io/keycloak/keycloak:22.0.1
+    container_name: keycloak
+    command: start-dev --import-realm
+    volumes:
+      - ./keycloak-realm-export.json:/opt/keycloak/data/import/realm.json:ro
+    environment:
+      - KEYCLOAK_ADMIN=admin
+      - KEYCLOAK_ADMIN_PASSWORD=admin
+    ports:
+      - "8081:8080" # 8081 en host para evitar conflicto con ApiGateway
+    networks:
+      - apigw-net
+
+  postgres:
+    image: postgres:15
+    container_name: postgres
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: microservices_db
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - apigw-net
+
+  apigateway:
+    build: .
+    container_name: apigateway
+    environment:
+      - SERVER_PORT=8080
+      - OAUTH_ISSUER_URI=http://keycloak:8080/realms/backend-tps
+      - APIGW_USUARIOS_URL=http://microservicio_usuarios:8001/
+      - APIGW_SOLICITUDES_URL=http://microservicio_solicitudes:8002/
+      - APIGW_INVENTARIO_URL=http://microservicio_inventario:8003/
+      - APIGW_VIAJES_URL=http://microservicio_viajes:8004/
+      - APIGW_TARIFAS_URL=http://microservicio_tarifas:8005/
+      - DEBUG=false
+    ports:
+      - "8080:8080"
+    depends_on:
+      - keycloak
+      - postgres
+    networks:
+      - apigw-net
+
+volumes:
+  pgdata:
+
+networks:
+  apigw-net:
+    driver: bridge
+

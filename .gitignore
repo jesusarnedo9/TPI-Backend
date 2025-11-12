@@ -1,0 +1,20 @@
+# Compilados y temporales
+target/
+*.class
+*.jar
+*.war
+*.ear
+*.log
+
+# Config de IDE
+.idea/
+*.iml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Archivos pesados de OSRM
+osrm-data/
+*.osrm*
+*.pbf
