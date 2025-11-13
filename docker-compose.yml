@@ -8,12 +8,12 @@ services:
       - "1433:1433"
     environment:
       - ACCEPT_EULA=Y
-      # IMPORTANTE: Esta es la contraseña para tu BD
       - MSSQL_SA_PASSWORD=yourStrong(!)Password
     volumes:
       - mssql_data:/var/opt/mssql
     networks:
       - tpi_net
+    # (Quitamos el healthcheck; el db-creator lo manejará esperando)
 
   # --- 2. SERVICIO DE AUTENTICACIÓN (Keycloak) ---
   keycloak:
@@ -23,42 +23,64 @@ services:
       - "9090:8080"
     command: start-dev
     environment:
-      # Conecta Keycloak a la base de datos (URL JDBC completa con propiedades SSL)
       - KC_DB=mssql
       - KC_DB_URL=jdbc:sqlserver://sql_server_db:1433;databaseName=keycloak_db;encrypt=true;trustServerCertificate=true
       - KC_DB_USERNAME=sa
       - KC_DB_PASSWORD=yourStrong(!)Password
-
-      # Admin de Keycloak
       - KEYCLOAK_ADMIN=admin
       - KEYCLOAK_ADMIN_PASSWORD=admin
     volumes:
       - keycloak_data:/opt/keycloak/data
     depends_on:
-      - db-sqlserver
+      # CORRECCIÓN: Keycloak debe esperar a que 'db-creator' termine
+      db-creator:
+        condition: service_completed_successfully
     networks:
       - tpi_net
 
   # --- 3. SERVICIO DE RUTAS (OSRM) ---
   osrm:
-    image: osrm/osrm-backend
+    # CORRECCIÓN: Esta es la imagen 'latest' de Docker Hub (que es la v5.26.0)
+    image: osrm/osrm-backend:latest
     container_name: osrm_router
     ports:
       - "5000:5000"
     volumes:
-      # Asegúrate que la carpeta 'osrm-data' esté al lado de este .yml
       - ./osrm-data:/data
     command: osrm-routed /data/argentina-latest.osrm
     networks:
       - tpi_net
 
+  # --- CORRECCIÓN CRÍTICA: CREADOR DE BDD ---
+  db-creator:
+    image: mcr.microsoft.com/mssql-tools
+    container_name: db_creator
+    environment:
+      - ACCEPT_EULA=Y
+    command: >
+      bash -c "
+      echo 'Servicio db-creator iniciado. Esperando 60s a que SQL Server (sql_server_db) se inicie...';
+      sleep 60;
+      echo 'Creando base de datos: keycloak_db';
+      /opt/mssql-tools/bin/sqlcmd -S sql_server_db -U sa -P 'yourStrong(!)Password' -Q \"IF NOT EXISTS (SELECT * FROM sys.databases WHERE name = N'keycloak_db') BEGIN CREATE DATABASE [keycloak_db]; PRINT('Base de datos keycloak_db creada'); END\";
+      echo 'Creando base de datos: tpi_db';
+      /opt/mssql-tools/bin/sqlcmd -S sql_server_db -U sa -P 'yourStrong(!)Password' -Q \"IF NOT EXISTS (SELECT * FROM sys.databases WHERE name = N'tpi_db') BEGIN CREATE DATABASE [tpi_db]; PRINT('Base de datos tpi_db creada'); END\";
+      echo 'Bases de datos listas. Saliendo.';
+      "
+    depends_on:
+      - db-sqlserver
+    networks:
+      - tpi_net
+
+
+  # --- FIN DE LA CORRECCIÓN ---
+
   # --- 4. API GATEWAY ---
   apigateway:
-    # CORREGIDO: Apunta a tu carpeta "ApiGateway"
-    build: ./ApiGateway 
+    build: ./ApiGateway
     container_name: apigateway
     ports:
-      - "8080:8080" # Puerto de entrada principal
+      - "8080:8080"
     environment:
       - SERVER_PORT=8080
       - APIGW_USUARIOS_URL=http://microservicio_usuarios:8001/
@@ -69,7 +91,7 @@ services:
       - OAUTH_ISSUER_URI=http://keycloak_server:8080/realms/backend-tps
     depends_on:
       - keycloak
-      - microservicio_usuarios 
+      - microservicio_usuarios
       - microservicio_solicitudes
       - microservicio_inventario
       - microservicio_viajes
@@ -80,8 +102,7 @@ services:
   # --- 5. MICROSERVICIOS ---
 
   microservicio_usuarios:
-    # CORREGIDO: Apunta a tu carpeta "Usuarios"
-    build: ./Usuarios 
+    build: ./Usuarios
     container_name: microservicio_usuarios
     ports:
       - "8001:8001"
@@ -92,14 +113,15 @@ services:
       - SPRING_DATASOURCE_PASSWORD=yourStrong(!)Password
       - OAUTH_ISSUER_URI=http://keycloak_server:8080/realms/backend-tps
     depends_on:
-      - db-sqlserver
-      - keycloak
+      db-creator:
+        condition: service_completed_successfully
+      keycloak:
+        condition: service_started
     networks:
       - tpi_net
 
   microservicio_solicitudes:
-    # CORREGIDO: Apunta a tu carpeta "Solicitudes"
-    build: ./Solicitudes 
+    build: ./Solicitudes
     container_name: microservicio_solicitudes
     ports:
       - "8002:8002"
@@ -110,14 +132,15 @@ services:
       - SPRING_DATASOURCE_PASSWORD=yourStrong(!)Password
       - OAUTH_ISSUER_URI=http://keycloak_server:8080/realms/backend-tps
     depends_on:
-      - db-sqlserver
-      - keycloak
+      db-creator:
+        condition: service_completed_successfully
+      keycloak:
+        condition: service_started
     networks:
       - tpi_net
 
   microservicio_inventario:
-    # CORREGIDO: Apunta a tu carpeta "inventario"
-    build: ./inventario 
+    build: ./Inventario # Corregí la 'i' minúscula por 'I' mayúscula
     container_name: microservicio_inventario
     ports:
       - "8003:8003"
@@ -128,14 +151,15 @@ services:
       - SPRING_DATASOURCE_PASSWORD=yourStrong(!)Password
       - OAUTH_ISSUER_URI=http://keycloak_server:8080/realms/backend-tps
     depends_on:
-      - db-sqlserver
-      - keycloak
+      db-creator:
+        condition: service_completed_successfully
+      keycloak:
+        condition: service_started
     networks:
       - tpi_net
 
   microservicio_viajes:
-    # CORREGIDO: Apunta a tu carpeta "Viajes"
-    build: ./Viajes 
+    build: ./Viajes
     container_name: microservicio_viajes
     ports:
       - "8004:8004"
@@ -147,15 +171,17 @@ services:
       - OAUTH_ISSUER_URI=http://keycloak_server:8080/realms/backend-tps
       - OSRM_SERVICE_URL=http://osrm_router:5000
     depends_on:
-      - db-sqlserver
-      - keycloak
-      - osrm 
+      db-creator:
+        condition: service_completed_successfully
+      keycloak:
+        condition: service_started
+      osrm:
+        condition: service_started
     networks:
       - tpi_net
 
   microservicio_tarifas:
-    # CORREGIDO: Apunta a tu carpeta "Tarifas"
-    build: ./Tarifas 
+    build: ./Tarifas
     container_name: microservicio_tarifas
     ports:
       - "8005:8005"
@@ -166,8 +192,10 @@ services:
       - SPRING_DATASOURCE_PASSWORD=yourStrong(!)Password
       - OAUTH_ISSUER_URI=http://keycloak_server:8080/realms/backend-tps
     depends_on:
-      - db-sqlserver
-      - keycloak
+      db-creator:
+        condition: service_completed_successfully
+      keycloak:
+        condition: service_started
     networks:
       - tpi_net
 
@@ -180,5 +208,3 @@ volumes:
 networks:
   tpi_net:
     driver: bridge
-
-#eof
