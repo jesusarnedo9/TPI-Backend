@@ -8,13 +8,10 @@ import org.springframework.web.reactive.function.client.WebClient;
 @Configuration
 public class WebClientConfig {
 
-    // Se asume que tu equipo ha definido estas URLs en el application.properties del API Gateway
-    // y Viajes las puede alcanzar (o se las puede proveer tu equipo).
-    // Usaremos localhost y los puertos definidos previamente para los MS.
-    @Value("${api.inventario.url:http://localhost:8003}")
+    @Value("${api.inventario.url}")
     private String inventarioBaseUrl;
 
-    @Value("${api.tarifas.url:http://localhost:8005}")
+    @Value("${api.tarifas.url}")
     private String tarifasBaseUrl;
 
     // URL base de la API Externa de Mapas (Configurada en application.properties de Viajes)
@@ -30,7 +27,6 @@ public class WebClientConfig {
                 .baseUrl(inventarioBaseUrl)
                 .build();
     }
-
     /**
      * Cliente para el microservicio de Tarifas (para calcular costos estimados/reales)
      */

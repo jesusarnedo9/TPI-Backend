@@ -27,5 +27,3 @@ COPY --from=build /app/target/*.jar app.jar
 
 # El comando para correr la aplicación
 ENTRYPOINT ["java", "-jar", "/app/app.jar"]
-
-

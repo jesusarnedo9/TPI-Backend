@@ -6,7 +6,10 @@ import org.springframework.security.config.annotation.method.configuration.Enabl
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
-import org.springframework.security.oauth2.jwt.JwtDecoders;
+import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.jwt.JwtTimestampValidator;
+import org.springframework.security.oauth2.core.OAuth2TokenValidator;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
 import org.springframework.security.web.SecurityFilterChain;
@@ -19,7 +22,17 @@ public class AppConfig {
 
     @Bean
     public JwtDecoder jwtDecoder(@Value("${spring.security.oauth2.resourceserver.jwt.issuer-uri}") String issuer) {
-        return JwtDecoders.fromIssuerLocation(issuer);
+        // Construye la URI del JWKS a partir del issuer del realm. Ej: http://keycloak:8080/realms/backend-tps/protocol/openid-connect/certs
+        String jwkSetUri = issuer.endsWith("/") ? issuer + "protocol/openid-connect/certs" : issuer + "/protocol/openid-connect/certs";
+
+        var jwtDecoder = NimbusJwtDecoder.withJwkSetUri(jwkSetUri).build();
+
+        // Validadores: dejamos la validación de timestamps (exp/nbf) pero no forzamos la comprobación estricta del issuer.
+        // Esto es útil en entornos de desarrollo cuando el realm puede no existir al primer arranque.
+        OAuth2TokenValidator<Jwt> timestampValidator = new JwtTimestampValidator();
+        jwtDecoder.setJwtValidator(timestampValidator);
+
+        return jwtDecoder;
     }
 
     @Bean

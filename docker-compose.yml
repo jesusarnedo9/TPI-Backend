@@ -8,16 +8,15 @@ services:
       - "1433:1433"
     environment:
       - ACCEPT_EULA=Y
-      - MSSQL_SA_PASSWORD=yourStrong(!)Password
+      - MSSQL_SA_PASSWORD=MyPassword123!
     volumes:
       - mssql_data:/var/opt/mssql
     networks:
       - tpi_net
-    # (Quitamos el healthcheck; el db-creator lo manejará esperando)
 
   # --- 2. SERVICIO DE AUTENTICACIÓN (Keycloak) ---
   keycloak:
-    image: quay.io/keycloak/keycloak:latest
+    build: ./keycloak
     container_name: keycloak_server
     ports:
       - "9090:8080"
@@ -26,21 +25,31 @@ services:
       - KC_DB=mssql
       - KC_DB_URL=jdbc:sqlserver://sql_server_db:1433;databaseName=keycloak_db;encrypt=true;trustServerCertificate=true
       - KC_DB_USERNAME=sa
-      - KC_DB_PASSWORD=yourStrong(!)Password
+      - KC_DB_PASSWORD=MyPassword123!
       - KEYCLOAK_ADMIN=admin
       - KEYCLOAK_ADMIN_PASSWORD=admin
+      - KC_METRICS_ENABLED=true
+      - KC_HEALTH_ENABLED=true
+
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c 'echo > /dev/tcp/localhost/8080' || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 60
+      start_period: 120s
+
     volumes:
       - keycloak_data:/opt/keycloak/data
+
     depends_on:
-      # CORRECCIÓN: Keycloak debe esperar a que 'db-creator' termine
       db-creator:
         condition: service_completed_successfully
+
     networks:
       - tpi_net
 
   # --- 3. SERVICIO DE RUTAS (OSRM) ---
   osrm:
-    # CORRECCIÓN: Esta es la imagen 'latest' de Docker Hub (que es la v5.26.0)
     image: osrm/osrm-backend:latest
     container_name: osrm_router
     ports:
@@ -51,7 +60,13 @@ services:
     networks:
       - tpi_net
 
-  # --- CORRECCIÓN CRÍTICA: CREADOR DE BDD ---
+#    healthcheck:
+#      test: ["CMD", "curl", "-f", "http://localhost:5000/"]
+#      interval: 10s
+#      timeout: 5s
+#      retries: 10
+
+  # --- 4. SERVICIO QUE CREA BASES DE DATOS ---
   db-creator:
     image: mcr.microsoft.com/mssql-tools
     container_name: db_creator
@@ -59,23 +74,20 @@ services:
       - ACCEPT_EULA=Y
     command: >
       bash -c "
-      echo 'Servicio db-creator iniciado. Esperando 60s a que SQL Server (sql_server_db) se inicie...';
+      echo 'Servicio db-creator iniciado. Esperando 60s a que SQL Server se inicie...';
       sleep 60;
       echo 'Creando base de datos: keycloak_db';
-      /opt/mssql-tools/bin/sqlcmd -S sql_server_db -U sa -P 'yourStrong(!)Password' -Q \"IF NOT EXISTS (SELECT * FROM sys.databases WHERE name = N'keycloak_db') BEGIN CREATE DATABASE [keycloak_db]; PRINT('Base de datos keycloak_db creada'); END\";
+      /opt/mssql-tools/bin/sqlcmd -S sql_server_db -U sa -P 'MyPassword123!' -Q \"IF NOT EXISTS (SELECT * FROM sys.databases WHERE name = N'keycloak_db') BEGIN CREATE DATABASE [keycloak_db]; END\";
       echo 'Creando base de datos: tpi_db';
-      /opt/mssql-tools/bin/sqlcmd -S sql_server_db -U sa -P 'yourStrong(!)Password' -Q \"IF NOT EXISTS (SELECT * FROM sys.databases WHERE name = N'tpi_db') BEGIN CREATE DATABASE [tpi_db]; PRINT('Base de datos tpi_db creada'); END\";
-      echo 'Bases de datos listas. Saliendo.';
+      /opt/mssql-tools/bin/sqlcmd -S sql_server_db -U sa -P 'MyPassword123!' -Q \"IF NOT EXISTS (SELECT * FROM sys.databases WHERE name = N'tpi_db') BEGIN CREATE DATABASE [tpi_db]; END\";
+      echo 'Bases de datos listas.';
       "
     depends_on:
       - db-sqlserver
     networks:
       - tpi_net
 
-
-  # --- FIN DE LA CORRECCIÓN ---
-
-  # --- 4. API GATEWAY ---
+  # --- 5. API GATEWAY ---
   apigateway:
     build: ./ApiGateway
     container_name: apigateway
@@ -89,18 +101,25 @@ services:
       - APIGW_VIAJES_URL=http://microservicio_viajes:8004/
       - APIGW_TARIFAS_URL=http://microservicio_tarifas:8005/
       - OAUTH_ISSUER_URI=http://keycloak_server:8080/realms/backend-tps
+
     depends_on:
-      - keycloak
-      - microservicio_usuarios
-      - microservicio_solicitudes
-      - microservicio_inventario
-      - microservicio_viajes
-      - microservicio_tarifas
+      keycloak:
+        condition: service_healthy
+      microservicio_usuarios:
+        condition: service_started
+      microservicio_solicitudes:
+        condition: service_started
+      microservicio_inventario:
+        condition: service_started
+      microservicio_viajes:
+        condition: service_started
+      microservicio_tarifas:
+        condition: service_started
+
     networks:
       - tpi_net
 
-  # --- 5. MICROSERVICIOS ---
-
+  # --- 6. MICROSERVICIOS ---
   microservicio_usuarios:
     build: ./Usuarios
     container_name: microservicio_usuarios
@@ -110,13 +129,13 @@ services:
       - SERVER_PORT=8001
       - SPRING_DATASOURCE_URL=jdbc:sqlserver://sql_server_db:1433;databaseName=tpi_db;encrypt=true;trustServerCertificate=true
       - SPRING_DATASOURCE_USERNAME=sa
-      - SPRING_DATASOURCE_PASSWORD=yourStrong(!)Password
+      - SPRING_DATASOURCE_PASSWORD=MyPassword123!
       - OAUTH_ISSUER_URI=http://keycloak_server:8080/realms/backend-tps
     depends_on:
       db-creator:
         condition: service_completed_successfully
       keycloak:
-        condition: service_started
+        condition: service_healthy
     networks:
       - tpi_net
 
@@ -129,18 +148,18 @@ services:
       - SERVER_PORT=8002
       - SPRING_DATASOURCE_URL=jdbc:sqlserver://sql_server_db:1433;databaseName=tpi_db;encrypt=true;trustServerCertificate=true
       - SPRING_DATASOURCE_USERNAME=sa
-      - SPRING_DATASOURCE_PASSWORD=yourStrong(!)Password
+      - SPRING_DATASOURCE_PASSWORD=MyPassword123!
       - OAUTH_ISSUER_URI=http://keycloak_server:8080/realms/backend-tps
     depends_on:
       db-creator:
         condition: service_completed_successfully
       keycloak:
-        condition: service_started
+        condition: service_healthy
     networks:
       - tpi_net
 
   microservicio_inventario:
-    build: ./Inventario # Corregí la 'i' minúscula por 'I' mayúscula
+    build: ./Inventario
     container_name: microservicio_inventario
     ports:
       - "8003:8003"
@@ -148,13 +167,13 @@ services:
       - SERVER_PORT=8003
       - SPRING_DATASOURCE_URL=jdbc:sqlserver://sql_server_db:1433;databaseName=tpi_db;encrypt=true;trustServerCertificate=true
       - SPRING_DATASOURCE_USERNAME=sa
-      - SPRING_DATASOURCE_PASSWORD=yourStrong(!)Password
+      - SPRING_DATASOURCE_PASSWORD=MyPassword123!
       - OAUTH_ISSUER_URI=http://keycloak_server:8080/realms/backend-tps
     depends_on:
       db-creator:
         condition: service_completed_successfully
       keycloak:
-        condition: service_started
+        condition: service_healthy
     networks:
       - tpi_net
 
@@ -167,16 +186,14 @@ services:
       - SERVER_PORT=8004
       - SPRING_DATASOURCE_URL=jdbc:sqlserver://sql_server_db:1433;databaseName=tpi_db;encrypt=true;trustServerCertificate=true
       - SPRING_DATASOURCE_USERNAME=sa
-      - SPRING_DATASOURCE_PASSWORD=yourStrong(!)Password
+      - SPRING_DATASOURCE_PASSWORD=MyPassword123!
       - OAUTH_ISSUER_URI=http://keycloak_server:8080/realms/backend-tps
       - OSRM_SERVICE_URL=http://osrm_router:5000
     depends_on:
       db-creator:
         condition: service_completed_successfully
       keycloak:
-        condition: service_started
-      osrm:
-        condition: service_started
+        condition: service_healthy
     networks:
       - tpi_net
 
@@ -189,22 +206,22 @@ services:
       - SERVER_PORT=8005
       - SPRING_DATASOURCE_URL=jdbc:sqlserver://sql_server_db:1433;databaseName=tpi_db;encrypt=true;trustServerCertificate=true
       - SPRING_DATASOURCE_USERNAME=sa
-      - SPRING_DATASOURCE_PASSWORD=yourStrong(!)Password
+      - SPRING_DATASOURCE_PASSWORD=MyPassword123!
       - OAUTH_ISSUER_URI=http://keycloak_server:8080/realms/backend-tps
     depends_on:
       db-creator:
         condition: service_completed_successfully
       keycloak:
-        condition: service_started
+        condition: service_healthy
     networks:
       - tpi_net
 
-# Definición de los volúmenes para persistir los datos
+# --- VOLUMENES ---
 volumes:
   mssql_data:
   keycloak_data:
 
-# Definición de la red compartida
+# --- RED ---
 networks:
   tpi_net:
     driver: bridge
