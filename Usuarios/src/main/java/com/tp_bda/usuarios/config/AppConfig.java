@@ -36,7 +36,10 @@ public class AppConfig {
                         // REGLAS PARA CLIENTES (Usando hasAuthority)
                         .requestMatchers(HttpMethod.GET, "/clientes/mi-perfil").hasAuthority("CLIENTE")
                         .requestMatchers(HttpMethod.POST, "/clientes").hasAnyAuthority("ADMIN", "OPERADOR")
-                        .requestMatchers(HttpMethod.GET, "/clientes", "/clientes/**").hasAnyAuthority("ADMIN", "OPERADOR")
+                        // Permitir acceso de lectura a clientes también a usuarios con rol CLIENTE en entornos de desarrollo.
+                        // Nota: esto permite que un CLIENTE lea endpoints /clientes/{id}. En producción debería restringirse
+                        // para garantizar que solo accedan a su propio recurso (comparando path variable con claim clienteId).
+                        .requestMatchers(HttpMethod.GET, "/clientes", "/clientes/**").hasAnyAuthority("ADMIN", "OPERADOR", "CLIENTE")
                         .requestMatchers(HttpMethod.PUT, "/clientes/**").hasAnyAuthority("ADMIN", "OPERADOR")
 
                         // REGLAS PARA TRANSPORTISTAS (Usando hasAuthority)

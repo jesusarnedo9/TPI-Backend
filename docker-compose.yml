@@ -5,7 +5,7 @@ services:
     image: mcr.microsoft.com/mssql/server:2022-latest
     container_name: sql_server_db
     ports:
-      - "1433:1433"
+      - "14330:1433"
     environment:
       - ACCEPT_EULA=Y
       - MSSQL_SA_PASSWORD=MyPassword123!
@@ -100,7 +100,8 @@ services:
       - APIGW_INVENTARIO_URL=http://microservicio_inventario:8003/
       - APIGW_VIAJES_URL=http://microservicio_viajes:8004/
       - APIGW_TARIFAS_URL=http://microservicio_tarifas:8005/
-      - OAUTH_ISSUER_URI=http://keycloak_server:8080/realms/backend-tps
+      - OAUTH_ISSUER_URI=http://keycloak:8080/realms/backend-tps
+      - SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI=http://keycloak:8080/realms/backend-tps/protocol/openid-connect/certs
 
     depends_on:
       keycloak:
@@ -130,7 +131,7 @@ services:
       - SPRING_DATASOURCE_URL=jdbc:sqlserver://sql_server_db:1433;databaseName=tpi_db;encrypt=true;trustServerCertificate=true
       - SPRING_DATASOURCE_USERNAME=sa
       - SPRING_DATASOURCE_PASSWORD=MyPassword123!
-      - OAUTH_ISSUER_URI=http://keycloak_server:8080/realms/backend-tps
+      - OAUTH_ISSUER_URI=http://keycloak:8080/realms/backend-tps
     depends_on:
       db-creator:
         condition: service_completed_successfully
@@ -149,7 +150,7 @@ services:
       - SPRING_DATASOURCE_URL=jdbc:sqlserver://sql_server_db:1433;databaseName=tpi_db;encrypt=true;trustServerCertificate=true
       - SPRING_DATASOURCE_USERNAME=sa
       - SPRING_DATASOURCE_PASSWORD=MyPassword123!
-      - OAUTH_ISSUER_URI=http://keycloak_server:8080/realms/backend-tps
+      - OAUTH_ISSUER_URI=http://keycloak:8080/realms/backend-tps
     depends_on:
       db-creator:
         condition: service_completed_successfully
@@ -168,7 +169,7 @@ services:
       - SPRING_DATASOURCE_URL=jdbc:sqlserver://sql_server_db:1433;databaseName=tpi_db;encrypt=true;trustServerCertificate=true
       - SPRING_DATASOURCE_USERNAME=sa
       - SPRING_DATASOURCE_PASSWORD=MyPassword123!
-      - OAUTH_ISSUER_URI=http://keycloak_server:8080/realms/backend-tps
+      - OAUTH_ISSUER_URI=http://keycloak:8080/realms/backend-tps
     depends_on:
       db-creator:
         condition: service_completed_successfully
@@ -187,7 +188,7 @@ services:
       - SPRING_DATASOURCE_URL=jdbc:sqlserver://sql_server_db:1433;databaseName=tpi_db;encrypt=true;trustServerCertificate=true
       - SPRING_DATASOURCE_USERNAME=sa
       - SPRING_DATASOURCE_PASSWORD=MyPassword123!
-      - OAUTH_ISSUER_URI=http://keycloak_server:8080/realms/backend-tps
+      - OAUTH_ISSUER_URI=http://keycloak:8080/realms/backend-tps
       - OSRM_SERVICE_URL=http://osrm_router:5000
     depends_on:
       db-creator:
@@ -207,7 +208,7 @@ services:
       - SPRING_DATASOURCE_URL=jdbc:sqlserver://sql_server_db:1433;databaseName=tpi_db;encrypt=true;trustServerCertificate=true
       - SPRING_DATASOURCE_USERNAME=sa
       - SPRING_DATASOURCE_PASSWORD=MyPassword123!
-      - OAUTH_ISSUER_URI=http://keycloak_server:8080/realms/backend-tps
+      - OAUTH_ISSUER_URI=http://keycloak:8080/realms/backend-tps
     depends_on:
       db-creator:
         condition: service_completed_successfully

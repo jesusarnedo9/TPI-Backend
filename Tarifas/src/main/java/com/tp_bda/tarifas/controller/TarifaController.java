@@ -4,8 +4,11 @@ import com.tp_bda.tarifas.DTO.TarifaRequestDTO;
 import com.tp_bda.tarifas.model.Tarifa;
 import com.tp_bda.tarifas.service.TarifaService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.Map;
@@ -16,6 +19,8 @@ public class TarifaController {
 
     @Autowired
     private TarifaService tarifaService;
+
+    private static final Logger log = LoggerFactory.getLogger(TarifaController.class);
 
     // ----------------------------------------------------------------------
     // ENDPOINT 1: ESTIMACIÓN (Consumido por MS Solicitudes)
@@ -34,13 +39,17 @@ public class TarifaController {
         try {
             Double costoEstimado = tarifaService.estimarCosto(distancia, peso, volumen);
             return ResponseEntity.ok(costoEstimado);
+        } catch (IllegalArgumentException e) {
+            log.warn("Estimación inválida: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null);
         } catch (Exception e) {
-            return ResponseEntity.status(500).build();
+            log.error("Error estimando tarifa", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
         }
     }
 
     @PostMapping("/aproximada")
-    public ResponseEntity<Map<String, Double>> getTarifaAproximada(
+    public ResponseEntity<?> getTarifaAproximada(
             @RequestBody TarifaRequestDTO requestDto) { // Asumo que el DTO que creaste se llama TarifaRequestDto
 
         try {
@@ -50,11 +59,12 @@ public class TarifaController {
                     requestDto.pesoContenedor()
             );
             return ResponseEntity.ok(estimaciones);
-
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().build(); // Si faltan datos
+            log.warn("Datos inválidos en tarifación aproximada: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("message", e.getMessage()));
         } catch (Exception e) {
-            return ResponseEntity.status(500).build();
+            log.error("Error calculando tarifa aproximada", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("message", "Error interno"));
         }
     }
 
@@ -72,7 +82,8 @@ public class TarifaController {
             Tarifa nuevaTarifa = tarifaService.guardarTarifa(tarifa);
             return ResponseEntity.ok(nuevaTarifa);
         } catch (Exception e) {
-            return ResponseEntity.status(400).build();
+            log.error("Error creando/actualizando tarifa", e);
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null);
         }
     }
 

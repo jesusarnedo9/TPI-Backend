@@ -1,0 +1,174 @@
+{
+  "info": {
+    "name": "Backend-TPS",
+    "_postman_id": "b8f9a7a2-3c6f-4d3c-9a2e-0f6d5b6a9c1e",
+    "description": "Colección para probar Keycloak y microservicios Backend-TPS (Token, Usuarios, Inventario, Tarifas, Solicitudes)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "access_token", "value": "" },
+    { "key": "kc_url", "value": "http://localhost:9090" },
+    { "key": "client_id", "value": "postman" },
+    { "key": "client_secret", "value": "postman-secret" },
+    { "key": "username", "value": "cliente1" },
+    { "key": "password", "value": "cliente1" },
+    { "key": "usuarios_url", "value": "http://localhost:8001" },
+    { "key": "solicitudes_url", "value": "http://localhost:8002" },
+    { "key": "inventario_url", "value": "http://localhost:8003" },
+    { "key": "tarifas_url", "value": "http://localhost:8005" },
+    { "key": "clientIdToQuery", "value": "1" }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Collection-level pre-request: obtiene un access_token de Keycloak y lo guarda en la variable de colección 'access_token'",
+          "const kcTokenUrl = pm.collectionVariables.get('kc_url') + '/realms/backend-tps/protocol/openid-connect/token';",
+          "const clientId = pm.collectionVariables.get('client_id');",
+          "const clientSecret = pm.collectionVariables.get('client_secret');",
+          "const username = pm.collectionVariables.get('username');",
+          "const password = pm.collectionVariables.get('password');",
+          "",
+          "pm.sendRequest({",
+          "    url: kcTokenUrl,",
+          "    method: 'POST',",
+          "    header: { 'Content-Type': 'application/x-www-form-urlencoded' },",
+          "    body: {",
+          "        mode: 'urlencoded',",
+          "        urlencoded: [",
+          "            { key: 'client_id', value: clientId },",
+          "            { key: 'client_secret', value: clientSecret },",
+          "            { key: 'grant_type', value: 'password' },",
+          "            { key: 'username', value: username },",
+          "            { key: 'password', value: password }",
+          "        ]",
+          "    }",
+          "}, function (err, res) {",
+          "    if (err || res.code !== 200) {",
+          "        console.log('Token request failed', err || res);",
+          "        pm.collectionVariables.set('access_token', '');",
+          "    } else {",
+          "        const json = res.json();",
+          "        pm.collectionVariables.set('access_token', json.access_token);",
+          "        console.log('Got token, len=', json.access_token.length);",
+          "    }",
+          "});"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "Keycloak - Get Token (manual)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/x-www-form-urlencoded" }
+        ],
+        "body": {
+          "mode": "urlencoded",
+          "urlencoded": [
+            { "key": "client_id", "value": "{{client_id}}", "type": "text" },
+            { "key": "client_secret", "value": "{{client_secret}}", "type": "text" },
+            { "key": "grant_type", "value": "password", "type": "text" },
+            { "key": "username", "value": "{{username}}", "type": "text" },
+            { "key": "password", "value": "{{password}}", "type": "text" }
+          ]
+        },
+        "url": {
+          "raw": "{{kc_url}}/realms/backend-tps/protocol/openid-connect/token",
+          "host": [ "{{kc_url}}" ],
+          "path": [ "realms", "backend-tps", "protocol", "openid-connect", "token" ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Usuarios - Mi perfil",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{access_token}}" }
+        ],
+        "url": { "raw": "{{usuarios_url}}/clientes/mi-perfil", "host": [ "{{usuarios_url}}" ], "path": [ "clientes", "mi-perfil" ] }
+      },
+      "response": []
+    },
+    {
+      "name": "Usuarios - Listar clientes (ADMIN/OPERADOR)",
+      "request": {
+        "method": "GET",
+        "header": [ { "key": "Authorization", "value": "Bearer {{access_token}}" } ],
+        "url": { "raw": "{{usuarios_url}}/clientes", "host": [ "{{usuarios_url}}" ], "path": [ "clientes" ] }
+      },
+      "response": []
+    },
+    {
+      "name": "Usuarios - Obtener cliente por id",
+      "request": {
+        "method": "GET",
+        "header": [ { "key": "Authorization", "value": "Bearer {{access_token}}" } ],
+        "url": { "raw": "{{usuarios_url}}/clientes/{{clientIdToQuery}}", "host": [ "{{usuarios_url}}" ], "path": [ "clientes", "{{clientIdToQuery}}" ] }
+      },
+      "response": []
+    },
+    {
+      "name": "Inventario - Validar camión",
+      "request": {
+        "method": "GET",
+        "header": [ { "key": "Authorization", "value": "Bearer {{access_token}}" } ],
+        "url": { "raw": "{{inventario_url}}/camiones/1/validar?peso=1200&volumen=2.5", "host": [ "{{inventario_url}}" ], "path": [ "camiones", "1", "validar" ], "query": [ { "key": "peso", "value": "1200" }, { "key": "volumen", "value": "2.5" } ] }
+      },
+      "response": []
+    },
+    {
+      "name": "Tarifas - Estimar",
+      "request": {
+        "method": "GET",
+        "header": [ { "key": "Authorization", "value": "Bearer {{access_token}}" } ],
+        "url": { "raw": "{{tarifas_url}}/api/tarifas/estimar?distancia=5.96&peso=1200&volumen=2.5", "host": [ "{{tarifas_url}}" ], "path": [ "api", "tarifas", "estimar" ], "query": [ { "key": "distancia", "value": "5.96" }, { "key": "peso", "value": "1200" }, { "key": "volumen", "value": "2.5" } ] }
+      },
+      "response": []
+    },
+    {
+      "name": "Viajes - Rutas tentativas",
+      "request": {
+        "method": "GET",
+        "header": [ { "key": "Authorization", "value": "Bearer {{access_token}}" } ],
+        "url": {
+          "raw": "http://localhost:8004/api/viajes/rutas/tentativas?origen=OrigenX&latOrigen=-34.6037&lonOrigen=-58.3816&destino=DestinoY&latDestino=-34.6158&lonDestino=-58.4333&pesoContenedor=1200",
+          "host": [ "http://localhost:8004" ],
+          "path": [ "api", "viajes", "rutas", "tentativas" ],
+          "query": [
+            { "key": "origen", "value": "OrigenX" },
+            { "key": "latOrigen", "value": "-34.6037" },
+            { "key": "lonOrigen", "value": "-58.3816" },
+            { "key": "destino", "value": "DestinoY" },
+            { "key": "latDestino", "value": "-34.6158" },
+            { "key": "lonDestino", "value": "-58.4333" },
+            { "key": "pesoContenedor", "value": "1200" }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Solicitudes - Crear solicitud",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{access_token}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"clienteId\": {{clientIdToQuery}},\n  \"origen\": \"Av A 100\",\n  \"destino\": \"Av B 200\",\n  \"peso\": 1200,\n  \"volumen\": 2.5\n}"
+        },
+        "url": { "raw": "{{solicitudes_url}}/api/solicitudes", "host": [ "{{solicitudes_url}}" ], "path": [ "api", "solicitudes" ] }
+      },
+      "response": []
+    }
+  ]
+}

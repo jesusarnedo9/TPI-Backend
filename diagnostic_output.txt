@@ -1,0 +1,153 @@
+**********************
+PowerShell transcript start
+Start time: 20251114153820
+Username: YISUS\Jesus
+RunAs User: YISUS\Jesus
+Configuration Name: 
+Machine: YISUS (Microsoft Windows NT 10.0.26200.0)
+Host Application: C:\Program Files\PowerShell\7\pwsh.dll -noexit -command try { . "c:\Users\Jesus\AppData\Local\Programs\Microsoft VS Code\resources\app\out\vs\workbench\contrib\terminal\common\scripts\shellIntegration.ps1" } catch {}
+Process ID: 26676
+PSVersion: 7.5.4
+PSEdition: Core
+GitCommitId: 7.5.4
+OS: Microsoft Windows 10.0.26200
+Platform: Win32NT
+PSCompatibleVersions: 1.0, 2.0, 3.0, 4.0, 5.0, 5.1, 6.0, 7.0
+PSRemotingProtocolVersion: 2.3
+SerializationVersion: 1.1.0.1
+WSManStackVersion: 3.0
+**********************
+Transcript started, output file is C:\Users\Jesus\OneDrive\Escritorio\TpiBackend\diagnostic_output.txt
+]633;D;0]633;A]633;P;Cwd=C:\x5cUsers\x5cJesus\x5cOneDrive\x5cEscritorio\x5cTpiBackend\x5cTarifasPS C:\Users\Jesus\OneDrive\Escritorio\TpiBackend\Tarifas> ]633;B
+PS>Write-Output "Diagnostic run started at: $(Get-Date -Format o)"
+Diagnostic run started at: 2025-11-14T15:38:21.4383887-03:00
+]633;D;0]633;A]633;P;Cwd=C:\x5cUsers\x5cJesus\x5cOneDrive\x5cEscritorio\x5cTpiBackend\x5cTarifasPS C:\Users\Jesus\OneDrive\Escritorio\TpiBackend\Tarifas> ]633;B
+]633;D]633;A]633;P;Cwd=C:\x5cUsers\x5cJesus\x5cOneDrive\x5cEscritorio\x5cTpiBackend\x5cTarifasPS C:\Users\Jesus\OneDrive\Escritorio\TpiBackend\Tarifas> ]633;B
+PS>try {
+  $tokResp = Invoke-RestMethod -Method Post -Uri 'http://localhost:9090/realms/backend-tps/protocol/openid-connect/token' -ContentType 'application/x-www-form-urlencoded' -Body @{client_id='postman'; client_secret='postman-secret'; grant_type='password'; username='cliente1'; password='cliente1'} -ErrorAction Stop
+  Write-Output "TOKEN_OK"
+  Write-Output "access_token_length: $($tokResp.access_token.Length)"
+} catch {
+  Write-Output "TOKEN_FAIL: $($_.Exception.Message)"
+  if ($_.Exception.Response) { Write-Output ($_.Exception.Response.Content.ReadAsStringAsync().Result) }
+  Stop-Transcript
+  exit 1
+}
+TOKEN_OK
+access_token_length: 1473
+]633;D;0]633;A]633;P;Cwd=C:\x5cUsers\x5cJesus\x5cOneDrive\x5cEscritorio\x5cTpiBackend\x5cTarifasPS C:\Users\Jesus\OneDrive\Escritorio\TpiBackend\Tarifas> ]633;B
+]633;D]633;A]633;P;Cwd=C:\x5cUsers\x5cJesus\x5cOneDrive\x5cEscritorio\x5cTpiBackend\x5cTarifasPS C:\Users\Jesus\OneDrive\Escritorio\TpiBackend\Tarifas> ]633;B
+PS>function DoFull([string]$method,[string]$url,[object]$body=$null) {
+  Write-Output "\n--- $method $url ---"
+  try {
+    $headers = @{ Authorization = "Bearer $($tokResp.access_token)" }
+    if ($method -eq 'GET') {
+      $r = Invoke-WebRequest -Method Get -Uri $url -Headers $headers -TimeoutSec 20 -ErrorAction Stop
+      Write-Output "Status: $($r.StatusCode.Value__)"
+      Write-Output "Headers:"
+      $r.Headers.GetEnumerator() | ForEach-Object { Write-Output "  $($_.Name): $($_.Value)" }
+      Write-Output "Body:" 
+      Write-Output $r.Content
+    } else {
+      $json = $body | ConvertTo-Json -Depth 10
+      Write-Output "Request JSON: $json"
+      $r = Invoke-WebRequest -Method $method -Uri $url -Headers $headers -Body $json -ContentType 'application/json' -TimeoutSec 20 -ErrorAction Stop
+      Write-Output "Status: $($r.StatusCode.Value__)"
+      Write-Output "Headers:"
+      $r.Headers.GetEnumerator() | ForEach-Object { Write-Output "  $($_.Name): $($_.Value)" }
+      Write-Output "Body:" 
+      Write-Output $r.Content
+    }
+  } catch {
+    if ($_.Exception.Response) {
+      $code = $_.Exception.Response.StatusCode.Value__
+      $body = $_.Exception.Response.Content.ReadAsStringAsync().Result
+      Write-Output "FAIL Status: $code"
+      Write-Output "Body:"; Write-Output $body
+    } else { Write-Output "ERR: $($_.Exception.Message)" }
+  }
+}
+]633;D;0]633;A]633;P;Cwd=C:\x5cUsers\x5cJesus\x5cOneDrive\x5cEscritorio\x5cTpiBackend\x5cTarifasPS C:\Users\Jesus\OneDrive\Escritorio\TpiBackend\Tarifas> ]633;B
+]633;D]633;A]633;P;Cwd=C:\x5cUsers\x5cJesus\x5cOneDrive\x5cEscritorio\x5cTpiBackend\x5cTarifasPS C:\Users\Jesus\OneDrive\Escritorio\TpiBackend\Tarifas> ]633;B
+PS>DoFull 'GET' 'http://localhost:8005/api/tarifas/estimar?distancia=5.96&peso=1200&volumen=2.5'
+\n--- GET http://localhost:8005/api/tarifas/estimar?distancia=5.96&peso=1200&volumen=2.5 ---
+PS>TerminatingError(Invoke-WebRequest): "Response status code does not indicate success: 401 ()."
+MethodInvocationException: 
+Line |
+  25 |        $body = $_.Exception.Response.Content.ReadAsStringAsync().Resul …
+     |        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+     | Exception calling "ReadAsStringAsync" with "0" argument(s): "Cannot access a disposed object.
+Object name: 'System.Net.Http.HttpConnectionResponseContent'."
+MethodInvocationException: 
+Line |
+  25 |        $body = $_.Exception.Response.Content.ReadAsStringAsync().Resul …
+     |        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+     | Exception calling "ReadAsStringAsync" with "0" argument(s): "Cannot access a disposed object.
+Object name: 'System.Net.Http.HttpConnectionResponseContent'."
+]633;D;0]633;A]633;P;Cwd=C:\x5cUsers\x5cJesus\x5cOneDrive\x5cEscritorio\x5cTpiBackend\x5cTarifasPS C:\Users\Jesus\OneDrive\Escritorio\TpiBackend\Tarifas> ]633;B
+PS>DoFull 'GET' 'http://localhost:8003/camiones/1/validar?peso=1200&volumen=2.5'
+\n--- GET http://localhost:8003/camiones/1/validar?peso=1200&volumen=2.5 ---
+PS>TerminatingError(Invoke-WebRequest): "Response status code does not indicate success: 401 ()."
+MethodInvocationException: 
+Line |
+  25 |        $body = $_.Exception.Response.Content.ReadAsStringAsync().Resul …
+     |        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+     | Exception calling "ReadAsStringAsync" with "0" argument(s): "Cannot access a disposed object.
+Object name: 'System.Net.Http.HttpConnectionResponseContent'."
+MethodInvocationException: 
+Line |
+  25 |        $body = $_.Exception.Response.Content.ReadAsStringAsync().Resul …
+     |        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+     | Exception calling "ReadAsStringAsync" with "0" argument(s): "Cannot access a disposed object.
+Object name: 'System.Net.Http.HttpConnectionResponseContent'."
+]633;D;0]633;A]633;P;Cwd=C:\x5cUsers\x5cJesus\x5cOneDrive\x5cEscritorio\x5cTpiBackend\x5cTarifasPS C:\Users\Jesus\OneDrive\Escritorio\TpiBackend\Tarifas> ]633;B
+PS>DoFull 'GET' 'http://localhost:8001/clientes/mi-perfil'
+\n--- GET http://localhost:8001/clientes/mi-perfil ---
+PS>TerminatingError(Invoke-WebRequest): "Response status code does not indicate success: 401 ()."
+MethodInvocationException: 
+Line |
+  25 |        $body = $_.Exception.Response.Content.ReadAsStringAsync().Resul …
+     |        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+     | Exception calling "ReadAsStringAsync" with "0" argument(s): "Cannot access a disposed object.
+Object name: 'System.Net.Http.HttpConnectionResponseContent'."
+MethodInvocationException: 
+Line |
+  25 |        $body = $_.Exception.Response.Content.ReadAsStringAsync().Resul …
+     |        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+     | Exception calling "ReadAsStringAsync" with "0" argument(s): "Cannot access a disposed object.
+Object name: 'System.Net.Http.HttpConnectionResponseContent'."
+]633;D;0]633;A]633;P;Cwd=C:\x5cUsers\x5cJesus\x5cOneDrive\x5cEscritorio\x5cTpiBackend\x5cTarifasPS C:\Users\Jesus\OneDrive\Escritorio\TpiBackend\Tarifas> ]633;B
+PS>$body = @{ clienteId = 1; origen = 'Av A 100'; destino = 'Av B 200'; peso = 1200; volumen = 2.5 }
+]633;D;0]633;A]633;P;Cwd=C:\x5cUsers\x5cJesus\x5cOneDrive\x5cEscritorio\x5cTpiBackend\x5cTarifasPS C:\Users\Jesus\OneDrive\Escritorio\TpiBackend\Tarifas> ]633;B
+PS>DoFull 'POST' 'http://localhost:8002/api/solicitudes' $body
+\n--- POST http://localhost:8002/api/solicitudes ---
+Request JSON: {
+  "clienteId": 1,
+  "peso": 1200,
+  "destino": "Av B 200",
+  "volumen": 2.5,
+  "origen": "Av A 100"
+}
+PS>TerminatingError(Invoke-WebRequest): "Response status code does not indicate success: 401 ()."
+MethodInvocationException: 
+Line |
+  25 |        $body = $_.Exception.Response.Content.ReadAsStringAsync().Resul …
+     |        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+     | Exception calling "ReadAsStringAsync" with "0" argument(s): "Cannot access a disposed object.
+Object name: 'System.Net.Http.HttpConnectionResponseContent'."
+MethodInvocationException: 
+Line |
+  25 |        $body = $_.Exception.Response.Content.ReadAsStringAsync().Resul …
+     |        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+     | Exception calling "ReadAsStringAsync" with "0" argument(s): "Cannot access a disposed object.
+Object name: 'System.Net.Http.HttpConnectionResponseContent'."
+]633;D;0]633;A]633;P;Cwd=C:\x5cUsers\x5cJesus\x5cOneDrive\x5cEscritorio\x5cTpiBackend\x5cTarifasPS C:\Users\Jesus\OneDrive\Escritorio\TpiBackend\Tarifas> ]633;B
+]633;D]633;A]633;P;Cwd=C:\x5cUsers\x5cJesus\x5cOneDrive\x5cEscritorio\x5cTpiBackend\x5cTarifasPS C:\Users\Jesus\OneDrive\Escritorio\TpiBackend\Tarifas> ]633;B
+PS>Write-Output "\nDiagnostic finished at: $(Get-Date -Format o)"
+\nDiagnostic finished at: 2025-11-14T15:38:26.4046909-03:00
+]633;D;0]633;A]633;P;Cwd=C:\x5cUsers\x5cJesus\x5cOneDrive\x5cEscritorio\x5cTpiBackend\x5cTarifasPS C:\Users\Jesus\OneDrive\Escritorio\TpiBackend\Tarifas> ]633;B
+PS>Stop-Transcript
+**********************
+PowerShell transcript end
+End time: 20251114153826
+**********************

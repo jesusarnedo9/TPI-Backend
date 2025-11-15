@@ -29,7 +29,169 @@
     }
   ],
   "roles": {
-    "realm": []
+      "realm": "backend-tps",
+      "enabled": true,
+      "displayName": "Backend TPS Realm",
+      "id": "backend-tps",
+      "roles": {
+        "realm": [
+          { "name": "ADMIN" },
+          { "name": "CLIENTE" },
+          { "name": "TRANSPORTISTA" },
+          { "name": "OPERADOR" }
+        ]
+      },
+      "clients": [
+        {
+          "clientId": "api-gateway",
+          "name": "Api Gateway",
+          "enabled": true,
+          "protocol": "openid-connect",
+          "publicClient": false,
+          "bearerOnly": true,
+          "redirectUris": [],
+          "attributes": {}
+        },
+        {
+          "clientId": "viajes",
+          "name": "Viajes MS",
+          "enabled": true,
+          "protocol": "openid-connect",
+          "publicClient": false,
+          "bearerOnly": true,
+          "redirectUris": [],
+          "attributes": {}
+        },
+        {
+          "clientId": "solicitudes",
+          "name": "Solicitudes MS",
+          "enabled": true,
+          "protocol": "openid-connect",
+          "publicClient": false,
+          "bearerOnly": true,
+          "redirectUris": [],
+          "attributes": {}
+        },
+        {
+          "clientId": "usuarios",
+          "name": "Usuarios MS",
+          "enabled": true,
+          "protocol": "openid-connect",
+          "publicClient": false,
+          "bearerOnly": true,
+          "redirectUris": [],
+          "attributes": {}
+        },
+        {
+          "clientId": "inventario",
+          "name": "Inventario MS",
+          "enabled": true,
+          "protocol": "openid-connect",
+          "publicClient": false,
+          "bearerOnly": true,
+          "redirectUris": [],
+          "attributes": {}
+        },
+        {
+          "clientId": "tarifas",
+          "name": "Tarifas MS",
+          "enabled": true,
+          "protocol": "openid-connect",
+          "publicClient": false,
+          "bearerOnly": true,
+          "redirectUris": [],
+          "attributes": {}
+        },
+        {
+          "clientId": "postman",
+          "name": "Postman (token client)",
+          "enabled": true,
+          "protocol": "openid-connect",
+          "publicClient": false,
+          "directAccessGrantsEnabled": true,
+          "serviceAccountsEnabled": false,
+          "clientAuthenticatorType": "client-secret",
+          "secret": "postman-secret",
+          "redirectUris": [],
+          "protocolMappers": [
+            {
+              "name": "mapper-clienteId",
+              "protocol": "openid-connect",
+              "protocolMapper": "oidc-usermodel-attribute-mapper",
+              "consentRequired": false,
+              "config": {
+                "userinfo.token.claim": "true",
+                "user.attribute": "clienteId",
+                "id.token.claim": "false",
+                "access.token.claim": "true",
+                "claim.name": "clienteId",
+                "jsonType.label": "String"
+              }
+            },
+            {
+              "name": "mapper-transportistaId",
+              "protocol": "openid-connect",
+              "protocolMapper": "oidc-usermodel-attribute-mapper",
+              "consentRequired": false,
+              "config": {
+                "userinfo.token.claim": "true",
+                "user.attribute": "transportistaId",
+                "id.token.claim": "false",
+                "access.token.claim": "true",
+                "claim.name": "transportistaId",
+                "jsonType.label": "String"
+              }
+            }
+          ]
+        }
+      ],
+      "users": [
+        {
+          "username": "admin",
+          "enabled": true,
+          "emailVerified": true,
+          "credentials": [
+            { "type": "password", "value": "admin", "temporary": false }
+          ],
+          "realmRoles": ["ADMIN"]
+        },
+        {
+          "username": "cliente1",
+          "enabled": true,
+          "emailVerified": true,
+          "attributes": {
+            "clienteId": ["10"]
+          },
+          "credentials": [
+            { "type": "password", "value": "cliente1", "temporary": false }
+          ],
+          "realmRoles": ["CLIENTE"]
+        },
+        {
+          "username": "transportista1",
+          "enabled": true,
+          "emailVerified": true,
+          "attributes": {
+            "transportistaId": ["20"],
+            "camionId": ["100"]
+          },
+          "credentials": [
+            { "type": "password", "value": "transportista1", "temporary": false }
+          ],
+          "realmRoles": ["TRANSPORTISTA"]
+        },
+        {
+          "username": "testuser",
+          "enabled": true,
+          "emailVerified": true,
+          "credentials": [
+            { "type": "password", "value": "password", "temporary": false }
+          ],
+          "realmRoles": ["CLIENTE"]
+        }
+      ],
+      "defaultRoles": ["CLIENTE"]
+    }
   }
-}
+
 

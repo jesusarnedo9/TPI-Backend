@@ -18,7 +18,7 @@ spring:
       routes:
         # 1. Ruta al MS Usuarios
         - id: usuarios-route
-          uri: ${apigateway.url-microservice-usuarios:http://microservicio_usuarios:8001}
+          uri: ${apigateway.url-microservice-usuarios:http://localhost:8001}
           predicates:
             - Path=/api/usuarios/**
           filters:
@@ -26,7 +26,7 @@ spring:
 
         # 2. Ruta al MS Solicitudes
         - id: solicitudes-route
-          uri: ${apigateway.url-microservice-solicitudes:http://microservicio_solicitudes:8002}
+          uri: ${apigateway.url-microservice-solicitudes:http://localhost:8002}
           predicates:
             - Path=/api/solicitudes/**
           filters:
@@ -34,7 +34,7 @@ spring:
 
         # 3. Ruta al MS Inventario
         - id: inventario-route
-          uri: ${apigateway.url-microservice-inventario:http://microservicio_inventario:8003}
+          uri: ${apigateway.url-microservice-inventario:http://localhost:8003}
           predicates:
             - Path=/api/inventario/**
           filters:
@@ -42,7 +42,7 @@ spring:
 
         # 4. Ruta al MS Viajes
         - id: viajes-route
-          uri: ${apigateway.url-microservice-viajes:http://microservicio_viajes:8004}
+          uri: ${apigateway.url-microservice-viajes:http://localhost:8004}
           predicates:
             - Path=/api/viajes/**
           filters:
@@ -50,7 +50,7 @@ spring:
 
         # 5. Ruta al MS Tarifas
         - id: tarifas-route
-          uri: ${apigateway.url-microservice-tarifas:http://microservicio_tarifas:8005}
+          uri: ${apigateway.url-microservice-tarifas:http://localhost:8005}
           predicates:
             - Path=/api/tarifas/**
           filters:
